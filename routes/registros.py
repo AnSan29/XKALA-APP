@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-
+from datetime import date
 from schemas.registro import RegistroEntrada, RegistroSalida
+from models.registro import Registro
 from db.deps import get_db
 from core.utils import get_client_ip
 from services.registro_service import crear_entrada, registrar_salida
@@ -66,3 +67,17 @@ def registrar_salida_endpoint(
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/estado")
+def consultar_estado(
+    db: Session = Depends(get_db),
+    usuario_id: int = Depends(get_current_user_id)
+):
+    hoy = date.today()
+    registro = db.query(Registro).filter(
+        Registro.usuario_id == usuario_id,
+        Registro.fecha == hoy,
+        Registro.cerrado == False
+    ).first()
+    
+    return {"activo": True if registro else False}

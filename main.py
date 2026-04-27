@@ -8,9 +8,26 @@ from db import init_models
 # Rutas de la aplicación
 from routes import auth, usuarios
 from routes import registros
+#Importa el middleware
+from fastapi.middleware.cors import CORSMiddleware
 
 # Instancia principal de FastAPI
 app = FastAPI()
+
+# Define los orígenes permitidos para consumir la api
+origins = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+]
+
+# Agrega el middleware a la aplicación
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos los métodos (GET, POST, etc.)
+    allow_headers=["*"], # Permite todos los headers (incluyendo tu Authorization con JWT)
+)
 
 #Evento que se ejecuta al iniciar la aplicación
 @app.on_event("startup")
