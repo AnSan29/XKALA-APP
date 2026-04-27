@@ -22,6 +22,11 @@ class Registro(Base):
     lat_salida = Column(Float, nullable=True)
     lng_salida = Column(Float, nullable=True)
     ip_salida = Column(String(50), nullable=True)
+    # Motivo de salida (controlado)
+    motivo_salida = Column(String(50), nullable=True)
+
+    # Observación opcional (texto libre)
+    observacion_salida = Column(String(255), nullable=True)
 
     cerrado = Column(Boolean, default=False)
 

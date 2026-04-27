@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 # Esquema para los Elementos de Protección Personal (EPP)
 class EPP(BaseModel):
@@ -18,3 +19,7 @@ class RegistroEntrada(BaseModel):
 class RegistroSalida(BaseModel):
     lat: float
     lng: float
+    motivo: str
+    observacion: Optional[str] = None
+
+    

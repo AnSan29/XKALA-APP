@@ -56,7 +56,9 @@ def registrar_salida_endpoint(
             usuario_id,
             data.lat,
             data.lng,
-            ip
+            ip,
+            data.motivo,
+            data.observacion
         )
         
         # Retorna confirmación

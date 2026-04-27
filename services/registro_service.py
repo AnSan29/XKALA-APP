@@ -48,7 +48,7 @@ def crear_entrada(db: Session, usuario_id: int, lat: float, lng: float, ip: str,
 
 
 # Registra la salida (fin de turno)
-def registrar_salida(db, usuario_id: int, lat: float, lng: float, ip: str):
+def registrar_salida(db, usuario_id: int, lat: float, lng: float, ip: str, motivo: str, observacion: str | None = None):
     # Fecha actual
     hoy = date.today()
     # Busca el registro abierto del día
@@ -60,11 +60,25 @@ def registrar_salida(db, usuario_id: int, lat: float, lng: float, ip: str):
     # Si no hay entrada previa, no permite salida
     if not registro:
         raise Exception("No hay registro de entrada activo hoy")
+    
+    # Validacion de motivo
+    motivos_validos = ["finalizacion", "requerimiento", "cancelacion", "otros"]
+
+    if motivo not in motivos_validos:
+        raise Exception("Motivo inválido")
+
+    if motivo in ["cancelacion", "otros"] and not observacion:
+        raise Exception("Debe ingresar una observación para este motivo")
+
      # Actualiza datos de salida
     registro.hora_salida = datetime.utcnow()
     registro.lat_salida = lat
     registro.lng_salida = lng
     registro.ip_salida = ip
+
+    registro.motivo_salida = motivo
+    registro.observacion_salida = observacion
+
     # Marca el turno como cerrado
     registro.cerrado = True
 
