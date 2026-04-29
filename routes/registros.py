@@ -1,83 +1,85 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from datetime import date
+
 from schemas.registro import RegistroEntrada, RegistroSalida
 from models.registro import Registro
+from models.usuario import Usuario
+
 from db.deps import get_db
 from core.utils import get_client_ip
 from services.registro_service import crear_entrada, registrar_salida
-from core.deps import get_current_user_id
+from core.deps import get_current_user
 
 # Router de registros (entrada/salida)
 router = APIRouter(prefix="/registros", tags=["Registros"])
 
-# Endpoint para registrar entrada (inicio de turno)
+
+# ✅ REGISTRAR ENTRADA
 @router.post("/entrada")
 def registrar_entrada(
-    data: RegistroEntrada, # Datos enviados (lat, lng, epp)
-    request: Request,# Información de la petición (para obtener IP)
-    db: Session = Depends(get_db), # Conexión a la DB
-    usuario_id: int = Depends(get_current_user_id) # Usuario autenticado desde JWT
+    data: RegistroEntrada,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),  # 👈 CAMBIO CLAVE
 ):
     try:
-        # Obtiene la IP del cliente
         ip = get_client_ip(request)
 
-        # Llama a la lógica de negocio para crear el registro
         registro = crear_entrada(
             db,
-            usuario_id,
+            current_user.id,  # 👈 usamos el id desde el usuario
             data.lat,
             data.lng,
             ip,
             data.epp
         )
-        # Retorna confirmación y ID del registro
+
         return {"message": "Entrada registrada", "registro_id": registro.id}
 
     except Exception as e:
-        # Manejo de errores (ej: ya tiene entrada hoy)
         raise HTTPException(status_code=400, detail=str(e))
 
-# Endpoint para registrar salida (fin de turno)
+
+# ✅ REGISTRAR SALIDA
 @router.post("/salida")
 def registrar_salida_endpoint(
-    data: RegistroSalida,  # Datos enviados (lat, lng)
+    data: RegistroSalida,
     request: Request,
     db: Session = Depends(get_db),
-    usuario_id: int = Depends(get_current_user_id)
+    current_user: Usuario = Depends(get_current_user),  # 👈 CAMBIO
 ):
     try:
-         # Obtiene la IP del cliente
         ip = get_client_ip(request)
 
-        # Llama a la lógica de negocio para cerrar el registro
         registro = registrar_salida(
             db,
-            usuario_id,
+            current_user.id,  # 👈 igual aquí
             data.lat,
             data.lng,
             ip,
             data.motivo,
             data.observacion
         )
-        
-        # Retorna confirmación
+
         return {"message": "Salida registrada"}
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
+
+# ✅ CONSULTAR ESTADO ACTUAL
 @router.get("/estado")
 def consultar_estado(
     db: Session = Depends(get_db),
-    usuario_id: int = Depends(get_current_user_id)
+    current_user: Usuario = Depends(get_current_user),  # 👈 CAMBIO
 ):
     hoy = date.today()
+
     registro = db.query(Registro).filter(
-        Registro.usuario_id == usuario_id,
+        Registro.usuario_id == current_user.id,  # 👈 CAMBIO
         Registro.fecha == hoy,
         Registro.cerrado == False
     ).first()
-    
+
     return {"activo": True if registro else False}

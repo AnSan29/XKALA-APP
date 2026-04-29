@@ -1,17 +1,42 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
-from core.security import decode_token
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+from jose import jwt, JWTError
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+from db.deps import get_db
+from models.usuario import Usuario
+from core.config import settings
 
-# Dependencia que se usa en rutas protegidas
-def get_current_user_id(token: str = Depends(oauth2_scheme)):
-    # Decodifica el token y obtiene el user_id
-    user_id = decode_token(token)
+security = HTTPBearer()
 
-    # Si el token es inválido o expiró, no permite acceso
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token inválido")
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
 
-    # Retorna el ID del usuario autenticado
-    return int(user_id)
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id: str = payload.get("sub")
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido",
+            )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+        )
+
+    user = db.query(Usuario).filter(Usuario.id == int(user_id)).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario no encontrado",
+        )
+
+    return user

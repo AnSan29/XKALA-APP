@@ -5,14 +5,14 @@ from schemas.usuario import UsuarioCreate
 from models.usuario import Usuario
 from core.security import hash_password
 from db.deps import get_db
+from core.deps import get_current_user
 
-# Router de usuarios con prefijo /usuarios
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
-# Endpoint para crear un nuevo usuario
+
+# ✅ CREAR USUARIO
 @router.post("/")
 def crear_usuario(data: UsuarioCreate, db: Session = Depends(get_db)):
-    # Crea el objeto usuario con los datos recibidos
     nuevo_usuario = Usuario(
         nombres=data.nombres,
         apellidos=data.apellidos,
@@ -24,7 +24,6 @@ def crear_usuario(data: UsuarioCreate, db: Session = Depends(get_db)):
         cargo_id=data.cargo_id,
         telefono=data.telefono,
         email=data.email,
-         # La contraseña NO se guarda en texto plano
         password_hash=hash_password(data.password),
     )
 
@@ -32,5 +31,15 @@ def crear_usuario(data: UsuarioCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo_usuario)
 
-    # Retorna confirmación
     return {"message": "Usuario creado correctamente"}
+
+
+# USUARIO ACTUAL
+@router.get("/me")
+def obtener_usuario_actual(current_user: Usuario = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "nombres": current_user.nombres,
+        "apellidos": current_user.apellidos,
+        "email": current_user.email,
+    }
